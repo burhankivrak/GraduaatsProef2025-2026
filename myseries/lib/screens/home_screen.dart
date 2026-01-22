@@ -42,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadPopularSeries() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _isSearching = false;
@@ -50,12 +51,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final result = await _tmdbService.getPopularSeriesPage(page: _currentPage);
+      if (!mounted) return;
       setState(() {
         _series = result['series'];
         _totalPages = result['total_pages'];
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
       log('Error loading popular series: $e');
     }
@@ -67,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _currentPage++;
     try {
       final result = await _tmdbService.getPopularSeriesPage(page: _currentPage);
+      if (!mounted) return;
       setState(() {
         _series.addAll(result['series']);
       });
@@ -81,6 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _isSearching = true;
@@ -90,12 +95,14 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final result =
           await _tmdbService.searchSeries(query);
+      if (!mounted) return;
       setState(() {
         _series = result['series'];
         _totalPages = result['total_pages'];
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
       log('Error searching series: $e');
     }

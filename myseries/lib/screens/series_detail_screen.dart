@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/serie_detail.dart';
 import '../services/tmdb_service.dart';
+import '../services/ratings_service.dart';
+import '../models/series.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 import 'season_episodes_screen.dart';
@@ -26,6 +28,102 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
   void initState() {
     super.initState();
     _loadSeriesDetail();
+  }
+
+  Future<void> _showRatingEditor(int currentRating) async {
+    int selected = currentRating;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF1E252D),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      builder: (context) {
+        double sliderVal = selected.toDouble();
+        return StatefulBuilder(builder: (context, setState) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Edit rating',
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.star, color: Colors.yellow[400]),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${sliderVal.toInt()}/10',
+                      style: TextStyle(color: Colors.yellow[400], fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(10, (i) {
+                    final val = i + 1;
+                    final filled = val <= sliderVal.toInt();
+                    return GestureDetector(
+                      onTap: () async {
+                        final s = Series(
+                          id: _seriesDetail!.id,
+                          name: _seriesDetail!.name,
+                          posterPath: _seriesDetail!.posterPath,
+                          firstAirDate: _seriesDetail!.firstAirDate,
+                        );
+                        Navigator.pop(context);
+                        if (val == currentRating) {
+                          await RatingsService().removeRating(widget.seriesId);
+                        } else {
+                          await RatingsService().addRating(s, val);
+                        }
+                      },
+                      child: Icon(
+                        filled ? Icons.star : Icons.star_border,
+                        color: filled ? Colors.yellow[400] : Colors.white54,
+                        size: 28,
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (currentRating > 0)
+                      TextButton(
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          await RatingsService().removeRating(widget.seriesId);
+                        },
+                        child: const Text('Remove', style: TextStyle(color: Colors.white70)),
+                      ),
+                    const SizedBox(width: 8),
+                  ],
+                ),
+              ],
+            ),
+          );
+        });
+      },
+    );
   }
 
   Future<void> _loadSeriesDetail() async {
@@ -91,7 +189,6 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                     fit: BoxFit.cover,
                   ),
 
-                // Gradient overlay
                 Container(
                   height: 220,
                   decoration: const BoxDecoration(
@@ -102,6 +199,24 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                         Color(0xFF1E252D),
                         Color(0x801E252D),
                         Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+
+                Positioned(
+                  top: 218,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    height: 1,
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color.fromARGB(255, 143, 143, 143).withOpacity(0.3),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
                       ],
                     ),
                   ),
@@ -189,6 +304,58 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                                           ),
                                         ),
                                       ],
+                                    ),
+                                    const SizedBox(height: 8),
+
+                                    StreamBuilder<int?>(
+                                      stream: RatingsService()
+                                          .rating(widget.seriesId),
+                                      builder: (context, snap) {
+                                        final userRating = snap.data ?? 0;
+                                        return Row(
+                                          children: [
+                                            const Text(
+                                              'Your rating:',
+                                              style: TextStyle(
+                                                color: Colors.white70,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            GestureDetector(
+                                              onTap: () => _showRatingEditor(userRating),
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                    horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.yellow.withOpacity(0.2),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(Icons.star,
+                                                        size: 14,
+                                                        color: Colors.yellow[400]),
+                                                    const SizedBox(width: 6),
+                                                    Text(
+                                                      '$userRating/10',
+                                                      style: TextStyle(
+                                                        color: Colors.yellow[400],
+                                                        fontWeight: FontWeight.w600,
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    Icon(Icons.edit,
+                                                        size: 14,
+                                                        color: Colors.white70),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
                                     ),
                                   ],
                                 ),

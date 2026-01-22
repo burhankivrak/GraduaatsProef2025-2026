@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:myseries/models/episodes.dart';
+import '../models/episodes.dart';
 import '../models/serie_detail.dart';
 import '../models/series.dart';
 

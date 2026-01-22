@@ -24,7 +24,7 @@ class SearchFilter extends StatelessWidget {
               autofocus: true,
               style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(
-                hintText: 'Zoek een serie...',
+                hintText: 'Search a serie...',
                 hintStyle: TextStyle(color: Colors.white54),
                 border: InputBorder.none,
               ),

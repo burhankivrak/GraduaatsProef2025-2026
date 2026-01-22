@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:myseries/screens/home_screen.dart';
+import 'authentication/auth.dart';
+import 'navigation/tab_navigator.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'config/firebase.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(const MySeriesApp());
 }
 
@@ -17,7 +28,9 @@ class MySeriesApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: const AuthWrapper(),
     );
   }
 }
+
+
