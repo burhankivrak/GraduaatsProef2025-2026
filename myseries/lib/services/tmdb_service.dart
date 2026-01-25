@@ -76,10 +76,13 @@ class TmdbService {
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      final List episodes = data['episodes'];
+      final List episodes = data['episodes'] ?? [];
       return episodes.map((e) => Episode.fromJson(e)).toList();
+    } else if (response.statusCode == 404) {
+      // Seizoen bestaat niet of is een speciale seizoen
+      return [];
     } else {
-      throw Exception('Failed to load episodes');
+      throw Exception('Failed to load episodes (status: ${response.statusCode})');
     }
   }
 }

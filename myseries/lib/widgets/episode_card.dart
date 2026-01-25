@@ -1,87 +1,71 @@
 import 'package:flutter/material.dart';
-
 import '../models/episodes.dart';
 
 class EpisodeCard extends StatelessWidget {
   final Episode episode;
-
+  final int seriesId;
+  final int? currentSeason;
+  final int? currentEpisode;
 
   const EpisodeCard({
     super.key,
     required this.episode,
+    required this.seriesId,
+    this.currentSeason,
+    this.currentEpisode,
   });
 
-  String _monthName(int month) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return months[month - 1];
-  }
-
-  String get formattedDate {
-     if (episode.airDate.isEmpty) return '';
-
-    try {
-      final dt = DateTime.parse(episode.airDate);
-      return '${dt.day} ${_monthName(dt.month)} ${dt.year}';
-    } catch (_) {
-      return episode.airDate;
-    }
+  bool get _isCurrentEpisode {
+    return currentSeason == episode.seasonNumber &&
+        currentEpisode == episode.episodeNumber;
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF313743),
+        color: _isCurrentEpisode ? Colors.yellow.withOpacity(0.15) : const Color(0xFF313743),
+        border: _isCurrentEpisode ? Border.all(color: Colors.yellow, width: 2) : null,
         borderRadius: BorderRadius.circular(12),
       ),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Episode number
-          Text(
-            'Episode ${episode.episodeNumber}',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 6),
-
-          // Title
-          Text(
-            episode.name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-
-          if (formattedDate.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              formattedDate,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 12,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  'Episode ${episode.episodeNumber}: ${episode.name}',
+                  style: TextStyle(
+                    color: _isCurrentEpisode ? Colors.yellow : Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ),
-          ],
-
+              if (_isCurrentEpisode)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.yellow,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'Watching',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           const SizedBox(height: 8),
-
-          // Overview
           Text(
             episode.overview,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 13,
-            ),
+            style: TextStyle(color: _isCurrentEpisode ? Colors.yellow.withOpacity(0.8) : Colors.white70),
           ),
         ],
       ),

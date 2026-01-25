@@ -1,9 +1,14 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+
 import '../models/serie_detail.dart';
+import '../models/series.dart';
+import '../models/watchlist.dart';
 import '../services/tmdb_service.dart';
 import '../services/ratings_service.dart';
-import '../models/series.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import '../services/watchlist_service.dart';
 
 import 'season_episodes_screen.dart';
 import 'trailer_player_screen.dart';
@@ -18,16 +23,27 @@ class SeriesDetailScreen extends StatefulWidget {
 
 class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
   final TmdbService _tmdbService = TmdbService();
+  final WatchlistService _watchlistService = WatchlistService();
+
   SeriesDetail? _seriesDetail;
   bool _isLoading = true;
 
   List<String> _trailers = [];
   YoutubePlayerController? _youtubeController;
 
+  WatchStatusEnum? _watchStatus;
+  bool _showWatchlistMenu = false;
+
   @override
   void initState() {
     super.initState();
     _loadSeriesDetail();
+    _loadWatchStatus();
+  }
+
+  Future<void> _loadWatchStatus() async {
+    final status = await _watchlistService.getStatus(widget.seriesId);
+    setState(() => _watchStatus = status);
   }
 
   Future<void> _showRatingEditor(int currentRating) async {
@@ -152,25 +168,66 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
     }
   }
 
+  Future<void> _setWatchStatus(WatchStatusEnum status) async {
+    final existing = await _watchlistService.getWatchlist(widget.seriesId);
+    final existingSeason = existing?['lastSeason'] as int?;
+    final existingEpisode = existing?['lastEpisode'] as int?;
+    final existingListName = existing?['listName'] as String?;
+
+    int? lastSeason;
+    int? lastEpisode;
+
+    if (status == WatchStatusEnum.watching || status == WatchStatusEnum.paused) {
+      lastSeason = existingSeason ?? 1;
+      lastEpisode = existingEpisode ?? 1;
+    } else {
+      lastSeason = existingSeason;
+      lastEpisode = existingEpisode;
+    }
+
+    final s = WatchlistSeries(
+      id: _seriesDetail!.id,
+      name: _seriesDetail!.name,
+      posterPath: _seriesDetail!.fullPosterUrl,
+      firstAirDate: _seriesDetail!.firstAirDate,
+      genres: _seriesDetail!.genres,
+      status: status,
+      listName: existingListName,
+      lastSeason: lastSeason,
+      lastEpisode: lastEpisode,
+    );
+
+    await _watchlistService.addOrUpdateWatchlist(s);
+    setState(() {
+      _watchStatus = status;
+      _showWatchlistMenu = false;
+    });
+  }
+
+  Future<void> _removeFromWatchlist() async {
+    await _watchlistService.remove(widget.seriesId);
+    setState(() {
+      _watchStatus = null;
+      _showWatchlistMenu = false;
+    });
+  }
+
+  void _playTrailer() {
+    if (_youtubeController == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => TrailerPlayerScreen(controller: _youtubeController!),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _youtubeController?.dispose();
     super.dispose();
   }
-
-  void _playTrailer() {
-  if (_youtubeController == null) return;
-
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      fullscreenDialog: true,
-      builder: (_) => TrailerPlayerScreen(
-        controller: _youtubeController!,
-      ),
-    ),
-  );
-}
 
   @override
   Widget build(BuildContext context) {
@@ -187,6 +244,11 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                     width: double.infinity,
                     height: 220,
                     fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: double.infinity,
+                      height: 220,
+                      color: const Color(0xFF1E252D),
+                    ),
                   ),
 
                 Container(
@@ -226,24 +288,29 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        // Back button
-                        Align(
-                          alignment: Alignment.topLeft,
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: GestureDetector(
-                              onTap: () => Navigator.pop(context),
-                              child: Container(
-                                width: 42,
-                                height: 42,
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.5),
-                                  borderRadius: BorderRadius.circular(50),
-                                ),
-                                child: const Icon(Icons.arrow_back,
-                                    color: Colors.white),
+                        // Top buttons
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _circleButton(
+                                Icons.arrow_back,
+                                () => Navigator.pop(context),
                               ),
-                            ),
+                              Column(
+                                children: [
+                                  _circleButton(
+                                    Icons.bookmark,
+                                    () => setState(() {
+                                      _showWatchlistMenu =
+                                          !_showWatchlistMenu;
+                                    }),
+                                    active: _watchStatus != null,
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
 
@@ -268,10 +335,27 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
-                                  child: Image.network(
-                                    _seriesDetail!.fullPosterUrl,
-                                    fit: BoxFit.cover,
-                                  ),
+                                  child: _seriesDetail!.fullPosterUrl.isNotEmpty
+                                      ? Image.network(
+                                          _seriesDetail!.fullPosterUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => Container(
+                                            color: const Color(0xFF313743),
+                                            child: const Icon(
+                                              Icons.broken_image,
+                                              color: Colors.white54,
+                                              size: 40,
+                                            ),
+                                          ),
+                                        )
+                                      : Container(
+                                          color: const Color(0xFF313743),
+                                          child: const Icon(
+                                            Icons.movie,
+                                            color: Colors.white54,
+                                            size: 40,
+                                          ),
+                                        ),
                                 ),
                               ),
 
@@ -465,25 +549,32 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                                         const EdgeInsets.only(bottom: 12),
                                     child: GestureDetector(
                                       onTap: () async {
-                                        final eps =
-                                            await _tmdbService
-                                                .getSeasonEpisodes(
-                                          widget.seriesId,
-                                          season.seasonNumber,
-                                        );
+                                        try {
+                                          final eps =
+                                              await _tmdbService
+                                                  .getSeasonEpisodes(
+                                                widget.seriesId,
+                                                season.seasonNumber,
+                                              );
 
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) =>
-                                                SeasonEpisodesScreen(
-                                              seriesId: widget.seriesId,
-                                              seasonNumber:
-                                                  season.seasonNumber,
-                                              episodes: eps,
+                                          if (!mounted) return;
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  SeasonEpisodesScreen(
+                                                seriesId: widget.seriesId,
+                                                seasonNumber:
+                                                    season.seasonNumber,
+                                                episodes: eps,
+                                              ),
                                             ),
-                                          ),
-                                        );
+                                          );
+                                        } catch (e) {
+                                          if (mounted) {
+                                            log('Error loading season: $e');
+                                          }
+                                        }
                                       },
                                       child: Container(
                                         padding: const EdgeInsets.all(12),
@@ -497,12 +588,33 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                                             ClipRRect(
                                               borderRadius:
                                                   BorderRadius.circular(8),
-                                              child: Image.network(
-                                                season.fullPosterUrl,
-                                                width: 64,
-                                                height: 96,
-                                                fit: BoxFit.cover,
-                                              ),
+                                              child: season.fullPosterUrl.isNotEmpty
+                                                  ? Image.network(
+                                                      season.fullPosterUrl,
+                                                      width: 64,
+                                                      height: 96,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (_, __, ___) => Container(
+                                                        width: 64,
+                                                        height: 96,
+                                                        color: const Color(0xFF313743),
+                                                        child: const Icon(
+                                                          Icons.broken_image,
+                                                          color: Colors.white54,
+                                                          size: 28,
+                                                        ),
+                                                      ),
+                                                    )
+                                                  : Container(
+                                                      width: 64,
+                                                      height: 96,
+                                                      color: const Color(0xFF313743),
+                                                      child: const Icon(
+                                                        Icons.movie,
+                                                        color: Colors.white54,
+                                                        size: 28,
+                                                      ),
+                                                    ),
                                             ),
                                             const SizedBox(width: 12),
                                             Expanded(
@@ -512,6 +624,8 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                                                 children: [
                                                   Text(
                                                     season.name,
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
                                                     style: const TextStyle(
                                                       color: Colors.white,
                                                       fontWeight:
@@ -555,8 +669,88 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> {
                     ),
                   ),
                 ),
+              if (_showWatchlistMenu)
+                Positioned(
+                  right: 12,
+                  top: 70,
+                  child: SafeArea(child: _watchlistMenu()),
+                ),
               ],
             ),
+    );
+  }
+
+  Widget _circleButton(IconData icon, VoidCallback onTap,
+      {bool active = false}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(50),
+        ),
+        child: Icon(
+          icon,
+          color: active ? Colors.blueAccent : Colors.white,
+        ),
+      ),
+    );
+  }
+
+  Widget _watchlistMenu() {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF313743),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      width: 180,
+      child: Column(
+        children: [
+          _menuItem('Currently Watching', WatchStatusEnum.watching),
+          _menuItem('To Watch', WatchStatusEnum.toWatch),
+          _menuItem('Paused', WatchStatusEnum.paused),
+          if (_watchStatus != null) ...[
+            const Divider(color: Colors.white24),
+            GestureDetector(
+              onTap: _removeFromWatchlist,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(Icons.delete, color: Colors.redAccent, size: 18),
+                    SizedBox(width: 8),
+                    Text('Remove',
+                        style: TextStyle(color: Colors.redAccent)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _menuItem(String label, WatchStatusEnum status) {
+    final active = _watchStatus == status;
+    return GestureDetector(
+      onTap: () => _setWatchStatus(status),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(color: Colors.white)),
+            if (active)
+              const Icon(Icons.check,
+                  color: Colors.greenAccent, size: 18),
+          ],
+        ),
+      ),
     );
   }
 

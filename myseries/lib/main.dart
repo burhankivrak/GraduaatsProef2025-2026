@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'authentication/auth.dart';
-import 'navigation/tab_navigator.dart';
-import 'screens/login_screen.dart';
-import 'screens/register_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'config/firebase.dart';
 
 void main() async {

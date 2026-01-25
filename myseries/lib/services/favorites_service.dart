@@ -20,12 +20,12 @@ class FavoritesService {
           .collection('favorites')
           .doc(series.id.toString())
           .set({
-        'id': series.id,
-        'name': series.name,
-        'posterPath': series.posterPath,
-        'firstAirDate': series.firstAirDate,
-        'addedAt': FieldValue.serverTimestamp(),
-      });
+            'id': series.id,
+            'name': series.name,
+            'posterPath': series.posterPath,
+            'firstAirDate': series.firstAirDate,
+            'addedAt': FieldValue.serverTimestamp(),
+          });
     } catch (e) {
       throw Exception('Error adding to favorites: $e');
     }
