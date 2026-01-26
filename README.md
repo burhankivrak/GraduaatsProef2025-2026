@@ -24,12 +24,12 @@ Dit project is gemaakt als onderdeel van een afstudeerwerk (GraduaatsProef) 2025
 
 ## Functies
 
-- 🔐 **Authenticatie**: Firebase Authentication voor veilige inloggen
-- 📚 **Series Management**: Beheer je series in watchlist en markeer ze als favorieten
-- ⭐ **Beoordelingen**: Geef ratings aan series
-- 🔄 **Real-time Sync**: Synchronisatie met Firebase Firestore
-- 📱 **Multi-platform**: Ondersteunt Android, iOS, Web, Windows, Linux, en macOS
-- 🎨 **Moderne UI**: Gebruiksvriendelijke interface met Flutter widgets
+- **Authenticatie**: Firebase Authentication voor veilige inloggen
+- **Series Management**: Beheer je series in watchlist en markeer ze als favorieten
+- **Beoordelingen**: Geef ratings aan series
+- **Real-time Sync**: Synchronisatie met Firebase Firestore
+- **Multi-platform**: Ondersteunt Android, iOS, Web, Windows, Linux, en macOS
+- **Moderne UI**: Gebruiksvriendelijke interface met Flutter widgets
 
 ## Requirements
 
@@ -60,7 +60,7 @@ Via Android Studio starten
 flutter run
 ```
 
-## 📁 Projectstructuur
+## Projectstructuur
 
 ```
 lib/
@@ -84,7 +84,7 @@ lib/
 └── ...
 ```
 
-## 🛠 Technologieën
+## Technologieën
 
 ### Frameworks & Libraries
 - **Flutter**: UI framework
