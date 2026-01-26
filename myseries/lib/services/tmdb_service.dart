@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:myseries/config/api_keys.dart';
 import '../models/episodes.dart';
 import '../models/serie_detail.dart';
 import '../models/series.dart';
 
 class TmdbService {
-  final String apiKey = '0302ca14356771d399eb4c1c781a9128'; 
+  final String apiKey = ApiKeys.tmdbApiKey; 
   final String apiBase = 'https://api.themoviedb.org/3';
 
   Future<Map<String, dynamic>> getPopularSeriesPage({int page = 1}) async {
