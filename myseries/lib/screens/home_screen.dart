@@ -5,7 +5,9 @@ import '../services/tmdb_service.dart';
 import '../models/series.dart';
 import '../widgets/search_filter.dart';
 import '../widgets/series_card.dart';
+import '../widgets/recommend_button.dart';
 import 'series_detail_screen.dart';
+import 'recommended_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -143,9 +145,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(color: Colors.white)))
               : ListView.builder(
                   controller: _scrollController,
-                  itemCount: _series.length,
+                  itemCount: _series.length + 1,
                   itemBuilder: (context, index) {
-                    final series = _series[index];
+                    if (index == 0) {
+                      return RecommendButton(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RecommendedScreen(),
+                            ),
+                          );
+                        },
+                      );
+                    }
+                    final series = _series[index - 1];
                     return SeriesCard(
                       data: series,
                       onTap: () {

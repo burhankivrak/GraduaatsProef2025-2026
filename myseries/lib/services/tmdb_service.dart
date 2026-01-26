@@ -85,4 +85,19 @@ class TmdbService {
       throw Exception('Failed to load episodes (status: ${response.statusCode})');
     }
   }
+
+  Future<List<Series>> getSeriesRecommendations(int id) async {
+    final url = Uri.parse('$apiBase/tv/$id/recommendations?api_key=$apiKey');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final List results = data['results'] ?? [];
+      return results.map((json) => Series.fromJson(json)).toList();
+    } else if (response.statusCode == 404) {
+      return [];
+    } else {
+      throw Exception('Failed to load recommendations (status: ${response.statusCode})');
+    }
+  }
 }
