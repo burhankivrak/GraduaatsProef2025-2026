@@ -53,22 +53,6 @@ class WatchlistService {
     }
   }
 
-  Future<void> updateStatus(int seriesId, WatchStatusEnum status) async {
-    try {
-      if (_userId.isEmpty) {
-        throw Exception('User not authenticated');
-      }
-      await _firestore
-          .collection('users')
-          .doc(_userId)
-          .collection('watchlist')
-          .doc(seriesId.toString())
-          .update({'status': status.value});
-    } catch (e) {
-      throw Exception('Error updating status: $e');
-    }
-  }
-
   Future<WatchStatusEnum?> getStatus(int seriesId) async {
     try {
       if (_userId.isEmpty) return null;
@@ -85,23 +69,6 @@ class WatchlistService {
     } catch (e) {
       throw Exception('Error getting status: $e');
     }
-  }
-
-  Stream<List<WatchlistSeries>> watchAll() {
-    if (_userId.isEmpty) {
-      return Stream.value([]);
-    }
-    return _firestore
-        .collection('users')
-        .doc(_userId)
-        .collection('watchlist')
-        .orderBy('addedAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs
-              .map((doc) => WatchlistSeries.fromMap(doc.data()))
-              .toList();
-        });
   }
 
   Stream<List<WatchlistSeries>> watchByStatus(WatchStatusEnum status) {

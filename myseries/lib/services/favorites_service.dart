@@ -48,23 +48,6 @@ class FavoritesService {
     }
   }
 
-  Future<bool> isFavorite(int seriesId) async {
-    try {
-      if (_userId.isEmpty) return false;
-
-      final doc = await _firestore
-          .collection('users')
-          .doc(_userId)
-          .collection('favorites')
-          .doc(seriesId.toString())
-          .get();
-
-      return doc.exists;
-    } catch (e) {
-      throw Exception('Error checking favorite status: $e');
-    }
-  }
-
   Stream<List<Series>> getAllFavorites() {
     if (_userId.isEmpty) {
       return Stream.value([]);

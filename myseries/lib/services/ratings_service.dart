@@ -46,19 +46,6 @@ class RatingsService {
     }
   }
 
-  Future<int?> getRating(int seriesId) async {
-    if (_userId.isEmpty) return null;
-    final doc = await _firestore
-        .collection('users')
-        .doc(_userId)
-        .collection('ratings')
-        .doc(seriesId.toString())
-        .get();
-    if (!doc.exists) return null;
-    final data = doc.data();
-    return (data?['rating'] as num?)?.toInt();
-  }
-
   Stream<int?> rating(int seriesId) {
     if (_userId.isEmpty) return Stream.value(null);
     return _firestore
